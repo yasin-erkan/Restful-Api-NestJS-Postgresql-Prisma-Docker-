@@ -23,7 +23,7 @@ A modern, secure, and scalable RESTful API for bookmark management built with Ne
 
 ### System Overview
 
-\`\`\`mermaid
+```mermaid
 graph TB
     Client[Client Applications]
     API[NestJS API Layer]
@@ -56,11 +56,11 @@ graph TB
     style Client fill:#f9f,stroke:#333,stroke-width:2px
     style API fill:#bbf,stroke:#333,stroke-width:2px
     style DB fill:#bfb,stroke:#333,stroke-width:2px
-\`\`\`
+```
 
 ### Authentication Flow
 
-\`\`\`mermaid
+```mermaid
 sequenceDiagram
     participant C as Client
     participant A as Auth Controller
@@ -87,12 +87,12 @@ sequenceDiagram
     D-->>S: Token Valid
     S-->>A: Generate New Tokens
     A-->>C: Return New Tokens
-\`\`\`
+```
 
 ### Bookmark Operation Flow
 
-\`\`\`mermaid
-graph TD
+```mermaid
+flowchart TD
     A[Client Request] -->|JWT Token| B{Auth Guard}
     B -->|Invalid| C[401 Unauthorized]
     B -->|Valid| D[Bookmark Controller]
@@ -101,18 +101,25 @@ graph TD
     D -->|Update| E
     D -->|Delete| E
     E -->|Prisma| F[(Database)]
-    
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style B fill:#bbf,stroke:#333,stroke-width:2px
-    style C fill:#fbb,stroke:#333,stroke-width:2px
-    style D fill:#bfb,stroke:#333,stroke-width:2px
-    style E fill:#fbf,stroke:#333,stroke-width:2px
-    style F fill:#bff,stroke:#333,stroke-width:2px
-\`\`\`
+
+    classDef client fill:#f9f,stroke:#333,stroke-width:2px
+    classDef guard fill:#bbf,stroke:#333,stroke-width:2px
+    classDef error fill:#fbb,stroke:#333,stroke-width:2px
+    classDef controller fill:#bfb,stroke:#333,stroke-width:2px
+    classDef service fill:#fbf,stroke:#333,stroke-width:2px
+    classDef db fill:#bff,stroke:#333,stroke-width:2px
+
+    class A client
+    class B guard
+    class C error
+    class D controller
+    class E service
+    class F db
+```
 
 ### Database Schema
 
-\`\`\`mermaid
+```mermaid
 erDiagram
     User ||--o{ Bookmark : has
     User {
@@ -137,4 +144,3 @@ erDiagram
         string tags
     }
 ```
-
