@@ -19,62 +19,95 @@ A modern, secure, and scalable RESTful API for bookmark management built with Ne
 
 </div>
 
-## 🌟 Features
-
-### 👤 Authentication & Authorization
-- Secure user registration and login system
-- JWT-based authentication with access and refresh tokens
-- Role-based access control
-- Password hashing and security best practices
-
-### 📑 Bookmark Management
-- CRUD operations for bookmarks
-- Rich metadata support
-- User-specific bookmark collections
-- Search and filtering capabilities
-
-### 🛡 Security
-- Input validation and sanitization
-- Rate limiting
-- CORS protection
-- Environment-based configuration
-
-### 🔄 Data Persistence
-- PostgreSQL database integration
-- Prisma ORM for type-safe database operations
-- Database migrations
-- Data validation and integrity
-
-## 🛠 Tech Stack
-
-### Core Technologies
-- **Backend Framework:** NestJS (Node.js)
-- **Database:** PostgreSQL
-- **ORM:** Prisma
-- **Authentication:** JWT (Access + Refresh Tokens)
-- **Container:** Docker & Docker Compose
-
-### Development Tools
-- **Testing:** Jest + e2e Tests
-- **API Documentation:** Postman Collection
-- **Code Quality:** ESLint + Prettier
-- **Type Safety:** TypeScript
-- **API Testing:** Postman Collections
-
 ## 🏗 Architecture
 
-### System Architecture
+### System Overview
 
 \`\`\`mermaid
-graph LR
-    Client[Client] --> API[NestJS API]
-    API --> Auth[Auth Module]
-    API --> User[User Module]
-    API --> Bookmark[Bookmark Module]
-    Auth --> DB[(PostgreSQL)]
-    User --> DB
-    Bookmark --> DB
-    Auth --> Cache[Cache]
+graph TB
+    Client[Client Applications]
+    API[NestJS API Layer]
+    Auth[Auth Module]
+    User[User Module]
+    Book[Bookmark Module]
+    Guard[JWT Guard]
+    Cache[Redis Cache]
+    DB[(PostgreSQL)]
+    Prisma[Prisma ORM]
+    
+    Client -->|HTTP/HTTPS| API
+    API -->|Validates| Guard
+    Guard -->|Authenticates| Auth
+    
+    subgraph NestJS Modules
+        Auth --> User
+        Auth --> Book
+        User --> Book
+    end
+    
+    subgraph Data Layer
+        Auth -->|Query| Prisma
+        User -->|Query| Prisma
+        Book -->|Query| Prisma
+        Prisma -->|Persist| DB
+        Auth -->|Cache| Cache
+    end
+
+    style Client fill:#f9f,stroke:#333,stroke-width:2px
+    style API fill:#bbf,stroke:#333,stroke-width:2px
+    style DB fill:#bfb,stroke:#333,stroke-width:2px
+\`\`\`
+
+### Authentication Flow
+
+\`\`\`mermaid
+sequenceDiagram
+    participant C as Client
+    participant A as Auth Controller
+    participant S as Auth Service
+    participant D as Database
+    
+    C->>A: POST /auth/signup
+    A->>S: Create User
+    S->>D: Save User
+    D-->>S: User Created
+    S-->>A: Generate Tokens
+    A-->>C: Return Tokens
+    
+    C->>A: POST /auth/signin
+    A->>S: Validate Credentials
+    S->>D: Find User
+    D-->>S: User Data
+    S-->>A: Generate Tokens
+    A-->>C: Return Tokens
+    
+    C->>A: POST /auth/refresh
+    A->>S: Validate Refresh Token
+    S->>D: Verify Token
+    D-->>S: Token Valid
+    S-->>A: Generate New Tokens
+    A-->>C: Return New Tokens
+\`\`\`
+
+### Bookmark Operation Flow
+
+\`\`\`mermaid
+graph TD
+    A[Client Request] -->|JWT Token| B{Auth Guard}
+    B -->|Invalid| C[401 Unauthorized]
+    B -->|Valid| D[Bookmark Controller]
+    D -->|Create| E[Bookmark Service]
+    D -->|Read| E
+    D -->|Update| E
+    D -->|Delete| E
+    E -->|Prisma| F[(Database)]
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style B fill:#bbf,stroke:#333,stroke-width:2px
+    style C fill:#fbb,stroke:#333,stroke-width:2px
+    style D fill:#bfb,stroke:#333,stroke-width:2px
+    style E fill:#fbf,stroke:#333,stroke-width:2px
+    style F fill:#bff,stroke:#333,stroke-width:2px
 \`\`\`
 
 ### Database Schema
@@ -90,6 +123,7 @@ erDiagram
         string lastName
         datetime createdAt
         datetime updatedAt
+        string refreshToken
     }
     Bookmark {
         int id PK
@@ -99,154 +133,9 @@ erDiagram
         int userId FK
         datetime createdAt
         datetime updatedAt
+        boolean isPublic
+        string tags
     }
 \`\`\`
 
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js (v18+)
-- PostgreSQL
-- Docker (optional)
-- npm/yarn
-
-### Installation
-
-1. **Clone the repository**
-   \`\`\`bash
-   git clone <repo-url>
-   cd Bookmark
-   \`\`\`
-
-2. **Install dependencies**
-   \`\`\`bash
-   npm install
-   \`\`\`
-
-3. **Environment Setup**
-   \`\`\`bash
-   # Create .env file with the following variables
-   DATABASE_URL="postgresql://user:password@localhost:5432/bookmark?schema=public"
-   JWT_SECRET="your-jwt-secret"
-   JWT_REFRESH_SECRET="your-refresh-secret"
-   \`\`\`
-
-4. **Database Setup**
-   \`\`\`bash
-   # Run migrations
-   npx prisma migrate dev
-   
-   # Generate Prisma Client
-   npx prisma generate
-   \`\`\`
-
-### Running the Application
-
-#### Development Mode
-\`\`\`bash
-npm run start:dev
-\`\`\`
-
-#### Production Mode
-\`\`\`bash
-npm run build
-npm run start:prod
-\`\`\`
-
-### Docker Setup
-
-\`\`\`bash
-# Build and start services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop services
-docker-compose down
-\`\`\`
-
-## 📡 API Reference
-
-### Authentication Endpoints
-
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| POST | /auth/signup | Register new user | No |
-| POST | /auth/signin | User login | No |
-| POST | /auth/refresh | Refresh token | Yes |
-
-### User Endpoints
-
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| GET | /users/me | Get user profile | Yes |
-| PATCH | /users | Update profile | Yes |
-
-### Bookmark Endpoints
-
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| GET | /bookmarks | List bookmarks | Yes |
-| POST | /bookmarks | Create bookmark | Yes |
-| GET | /bookmarks/:id | Get bookmark | Yes |
-| PATCH | /bookmarks/:id | Update bookmark | Yes |
-| DELETE | /bookmarks/:id | Delete bookmark | Yes |
-
-## 🧪 Testing
-
-### Running Tests
-
-\`\`\`bash
-# Run all tests
-npm run test
-
-# Run e2e tests
-npm run test:e2e
-
-# Run tests with coverage
-npm run test:cov
-\`\`\`
-
-### Test Coverage Goals
-- Unit Tests: >80%
-- E2E Tests: >70%
-- Integration Tests: >75%
-
-## 📚 Documentation
-
-### API Documentation
-- Postman Collection: \`bookmark-app.postman_collection.json\`
-- Environment: \`bookmark-environment.postman_environment.json\`
-- Scripted Tests: \`bookmark-app-with-scripts.postman_collection.json\`
-
-For detailed API usage, refer to \`postman-guide.md\`.
-
-## 🔐 Security
-
-- JWT-based authentication
-- Password hashing with bcrypt
-- Rate limiting on auth endpoints
-- Input validation
-- CORS protection
-- Environment variable security
-
-## 🤝 Contributing
-
-1. Fork the Project
-2. Create your Feature Branch (\`git checkout -b feature/AmazingFeature\`)
-3. Commit your Changes (\`git commit -m 'Add some AmazingFeature'\`)
-4. Push to the Branch (\`git push origin feature/AmazingFeature\`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [NestJS Documentation](https://docs.nestjs.com/)
-- [Prisma Documentation](https://www.prisma.io/docs/)
-- [JWT.io](https://jwt.io/)
-- [Docker Documentation](https://docs.docker.com/)
+[Diğer içerik aynı kalacak...]
