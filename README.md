@@ -136,6 +136,5 @@ erDiagram
         boolean isPublic
         string tags
     }
-\`\`\`
+```
 
-[Diğer içerik aynı kalacak...]
